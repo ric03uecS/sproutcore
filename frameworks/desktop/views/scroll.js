@@ -1271,17 +1271,20 @@ SC.ScrollView = SC.View.extend({
   _scsv_initializeScrollGesture: function(averagedTouch) {
     // Reset the distance.
     this._scroll_gestureAnchorD = averagedTouch.d;
+    this._scroll_gestureAnchorScale = this._scroll_scale;
+    this._scroll_gestureAnchorContentHeight = this._scroll_contentHeight;
+    this._scroll_gestureAnchorContentWidth = this._scroll_contentWidth;
 
     // If this is our first touch initialization of the gesture, mark down our initial anchor values.
     if (!this._scroll_touchGestureIsInitialized) {
       this._scroll_gestureAnchorX = this._scroll_gesturePriorX = averagedTouch.x;
       this._scroll_gestureAnchorY = this._scroll_gesturePriorY = averagedTouch.y;
       this._scroll_globalContainerFrame = null;
-      this._scroll_gestureAnchorScale = this._scroll_scale;
+      
       this._scroll_gestureAnchorVerticalOffset = this._scroll_verticalScrollOffset;
       this._scroll_gestureAnchorHorizontalOffset = this._scroll_horizontalScrollOffset;
-      this._scroll_gestureAnchorContentHeight = this._scroll_contentHeight;
-      this._scroll_gestureAnchorContentWidth = this._scroll_contentWidth;
+      // this._scroll_gestureAnchorContentHeight = this._scroll_contentHeight;
+      // this._scroll_gestureAnchorContentWidth = this._scroll_contentWidth;
     }
     // If we're mid-scroll, we need to adjust locations rather. (This prevents jumps when
     // adding or removing touches.)
@@ -1318,7 +1321,7 @@ SC.ScrollView = SC.View.extend({
       absDeltaY = Math.abs(deltaY),
       absDeltaD = Math.abs(deltaD),
       // If our scale changes, then our vertical/horizontal offsets need to move by an additional factor.
-      xInContainer, yInContainer, xOnContent, yOnContent,
+      xInContainer, yInContainer,
       contentDeltaHeight, contentDeltaWidth,
       // We will calculate our target values below.
       goalX, goalY, goalScale,
@@ -1398,8 +1401,8 @@ SC.ScrollView = SC.View.extend({
       if (goalScaleDidChange) {
         // Update content size values now. This gives us truer values below, and don't cost nothin. (TODO: this is effectively
         // contentViewFrameDidChange without the scroller updates, which means the scroller mins/maxes don't get updated as
-        // often as they should. We should look into that here.)
-        // Algebra for 'contentNew[Size]' step:
+        // often as they should. We should look into that.)
+        // Algebra:
         // new width / new scale = anchor width / anchor scale
         // new width = (anchor width * new scale) / anchor scale
         this._scroll_contentWidth = this._scroll_gestureAnchorContentWidth / this._scroll_gestureAnchorScale * goalScale;
@@ -1415,19 +1418,19 @@ SC.ScrollView = SC.View.extend({
         // First, calculate the %-across-the-content values.
         if (!this._scroll_globalContainerFrame) {
           this._scroll_globalContainerFrame = this.containerView.convertFrameToView(this.containerView.get('frame'));
+          xInContainer = avg.x - this._scroll_globalContainerFrame.x;
+          this._scroll_touchGestureXAcrossContent = (xInContainer + this._scroll_horizontalScrollOffset) / this._scroll_contentWidth;
+          yInContainer = avg.y - this._scroll_globalContainerFrame.y;
+          this._scroll_touchGestureYAcrossContent = (yInContainer + this._scroll_verticalScrollOffset) / this._scroll_contentHeight;
         }
-        xInContainer = avg.x - this._scroll_globalContainerFrame.x;
-        xOnContent = (xInContainer + this._scroll_horizontalScrollOffset) / this._scroll_contentWidth;
-        yInContainer = avg.y - this._scroll_globalContainerFrame.y;
-        yOnContent = (yInContainer + this._scroll_verticalScrollOffset) / this._scroll_contentHeight;
 
         // Next, calculate the total change in size that the content is about to undergo.
         contentDeltaWidth = this._scroll_contentWidth - this._scroll_gestureAnchorContentWidth;
         contentDeltaHeight = this._scroll_contentHeight - this._scroll_gestureAnchorContentHeight;
 
         // Combine the values to determine how much of the total size change comes off the top/left edges.
-        this._scroll_gestureScaleAdditionalOffsetX = contentDeltaWidth * xOnContent;
-        this._scroll_gestureScaleAdditionalOffsetY = contentDeltaHeight * yOnContent;
+        this._scroll_gestureScaleAdditionalOffsetX = contentDeltaWidth * this._scroll_touchGestureXAcrossContent;
+        this._scroll_gestureScaleAdditionalOffsetY = contentDeltaHeight * this._scroll_touchGestureYAcrossContent;
       }
     }
 
@@ -1502,8 +1505,7 @@ SC.ScrollView = SC.View.extend({
         if (!captured) {
           captured = touch.makeTouchResponder(touch.targetView, YES, this);
         }
-        // If the content has captured the touch, then immediately end it. (TODO: See if there are problems with
-        // beginning and ending a touch on a child view in the same run loop.)
+        // If the content has captured the touch, then immediately end it.
         if (captured) {
           touch.end();
         }
@@ -1853,7 +1855,9 @@ SC.ScrollView = SC.View.extend({
     this._scroll_isTouchScrollingX = NO;
     this._scroll_isTouchScrollingY = NO;
     this._scroll_isTouchScaling = NO;
+    // Used to track (occasionally) asynchronous touch initialization.
     this._scroll_latestTouchID = 0;
+    // Used when repositioning the scaled content to keep it under the pinch gesture.
     this._scroll_globalContainerFrame = null;
     this._scroll_gestureAnchorX = null;
     this._scroll_gestureAnchorY = null;
