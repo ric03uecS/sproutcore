@@ -3,11 +3,9 @@ rvm:
   - 1.9.3
 
 install: true
-
-
-addons:
-  firefox:"27.0"
   
+addons:
+  firefox: "27.0"
 
 before_script:
   - phantomjs --version
