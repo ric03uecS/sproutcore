@@ -4,6 +4,9 @@ rvm:
 
 install: true
 
+addons:
+  firefox: "27.0"
+
 before_script:
   - ./scripts/run_sc_server_master.sh
   - sleep 5 # give sc-server some time to start
