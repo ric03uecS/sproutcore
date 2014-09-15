@@ -6,6 +6,7 @@ install: true
 
 addons:
   firefox:"27.0"
+  
 
 before_script:
   - phantomjs --version
