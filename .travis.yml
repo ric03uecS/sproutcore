@@ -5,7 +5,7 @@ rvm:
 install: true
   
 addons:
-  firefox: "27.0"
+  firefox: "24.0"
 
 before_script:
   - env
